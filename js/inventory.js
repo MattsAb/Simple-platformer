@@ -1,6 +1,6 @@
 
 import { objectList } from "./gameLogic.js";
-import { Platform, LongPlatform, Spring } from "./placeables.js";
+import { Platform, LongPlatform, Spring } from "./objects/placeables.js";
 
 const inventory = {
     itemCount: 0,
@@ -9,6 +9,7 @@ const inventory = {
         y: 0,
         with: 0,
         height: 0,
+        color: 0,
         id: ''}],
     x: 0,
     y: 0,
@@ -20,7 +21,19 @@ const inventory = {
     startingItems: [{}]
 }
 
+function resetItemPositions(){
+    let x = inventory.x + 20
+
+    inventory.itemList.forEach((item) => {
+        item.x = x
+        x += item.width + 20
+    })
+    
+    inventory.totalWidth = x
+}
+
 export function setInventory(items) {
+    inventory.onItem = null;
     inventory.startingItems = [...items];
     let x = inventory.x + 20; 
     inventory.itemCount = items.length
@@ -31,7 +44,8 @@ export function setInventory(items) {
             y: inventory.height / 2 - item.height / 2,
             width: item.width,
             height: item.height,
-            id: item.id
+            id: item.id,
+            color: item.color
         };
         x += item.width + 20;
         return invItem;
@@ -39,28 +53,21 @@ export function setInventory(items) {
     inventory.totalWidth = x
 }
 
-export function resetInventory(){
-    setInventory(inventory.startingItems)
-}
 
-
-
-function mouseDown(e) {
+export function inventoryMouseDown(x ,y) {
     inventory.itemList.forEach(item => {
         if (
-            inventory.mouseX >= item.x &&
-            inventory.mouseX <= item.x + item.width &&
-            inventory.mouseY >= item.y &&
-            inventory.mouseY <= item.y + item.height
+            x >= item.x &&
+            x <= item.x + item.width &&
+            y >= item.y &&
+            y <= item.y + item.height
         ) {
             inventory.onItem = item;
         }
     });
 }
 
-
-
-function mouseUp() {
+export function itemReleased() {
     if (!inventory.onItem) return;
 
     const index = inventory.itemList.indexOf(inventory.onItem);
@@ -94,43 +101,22 @@ function mouseUp() {
     inventory.onItem = null;
 }
 
-
-function setMouse(e) {
-    const rect = canvas.getBoundingClientRect();
-
-    inventory.mouseX = e.clientX - rect.left;
-    inventory.mouseY = e.clientY - rect.top;
-
+export function setMouseInInventory(x,y) {
     if (inventory.onItem) {
-        inventory.onItem.x = inventory.mouseX - inventory.onItem.width / 2;
-        inventory.onItem.y = inventory.mouseY - inventory.onItem.height / 2;
+        inventory.onItem.x = x - inventory.onItem.width / 2;
+        inventory.onItem.y = y - inventory.onItem.height / 2;
     }
 }
-
-function resetItemPositions(){
-    let x = inventory.x + 20
-
-    inventory.itemList.forEach((item) => {
-        item.x = x
-        x += item.width + 20
-    })
-    
-    inventory.totalWidth = x
-}
-
 export function drawInventory (ctx) {
-    ctx.fillStyle = 'rgba(0,0,0,.4)'
-    inventory.itemCount ? ctx.fillRect(inventory.x,inventory.y,inventory.totalWidth, inventory.height) : 0
-
-
+    if (inventory.itemCount)
+    {
+        ctx.fillStyle = 'rgba(0,0,0,.4)'
+        ctx.fillRect(inventory.x,inventory.y,inventory.totalWidth, inventory.height)
+    }
 
     inventory.itemList.forEach((item) => {
-    item === inventory.onItem ? ctx.fillStyle = 'rgba(0,0,0,.4)' : ctx.fillStyle = 'black'
+    item === inventory.onItem ? ctx.fillStyle = 'rgba(0,0,0,.4)' : ctx.fillStyle = item.color
     ctx.fillRect(item.x, item.y, item.width, item.height)
     })
 
 }
-
-canvas.addEventListener('mousedown', mouseDown);
-canvas.addEventListener('mousemove', setMouse);
-canvas.addEventListener('mouseup', mouseUp);

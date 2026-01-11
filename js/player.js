@@ -2,8 +2,8 @@ import { currentLevel } from "./gameLogic.js";
 import { setNextLevel } from "./gameLogic.js";
 
 export const player = {
-  width: 50,
-  height: 50,
+  width: 35,
+  height: 60,
   x: 20,
   y: 200,
   leftX: 0,
@@ -13,6 +13,7 @@ export const player = {
   jumpPower: 5,
   gravity: 0.1,
   onFloor: false,
+  jumpBuffered: false,
   originalX: 0,
   originalY: 0,
 };
@@ -26,10 +27,7 @@ function keyDown(e) {
       player.leftX = -player.speed;
       break;
     case "ArrowUp":
-      if (player.onFloor) {
-        player.dy = -player.jumpPower;
-        player.onFloor = false;
-      }
+          player.jumpBuffered = true;
       break;
   }
 }
@@ -74,55 +72,80 @@ function playerFall() {
   }
 }
 
+function resetPlayer() {
+  player.x = player.originalX;
+  player.y = player.originalY;
+  player.leftX = 0;
+  player.rightX = 0;
+  player.dy = 0;
+  currentLevel.load()
+}
+
 function drawPlayer(ctx) {
-    ctx.fillStyle = "black";
-    ctx.fillRect(player.x, player.y, player.width, player.height);
+    ctx.fillStyle = "#3b3ec4";
+    ctx.beginPath();
+    ctx.arc(player.x + player.width / 2, player.y + player.width /2, player.width/ 2, Math.PI, 0);
+    ctx.lineTo(player.x +player.width, player.y + player.height)
+    ctx.lineTo(player.x, player.y + player.height)
+    ctx.lineTo(player.x, player.y + player.width / 2)
+    ctx.closePath();
+    ctx.fill();
 }
 
 export function checkPlayerCollision(objects) {
-    player.onFloor = false
+  player.onFloor = false;
 
-    objects.forEach(obj => {
-        const prevY = player.y - player.dy;
+  const prevY = player.y - player.dy;
 
-        if (
-            player.x < obj.x + obj.width &&
-            player.x + player.width > obj.x &&
-            player.y < obj.y + obj.height &&
-            player.y + player.height > obj.y
-        ) {
-            if (obj.type === 'hostile')
-            {
-              resetPlayer()
-              return
-            }
-            if (prevY + player.height <= obj.y) {
-                player.y = obj.y - player.height;
-                player.dy = 0;
-                player.onFloor = true;
-                obj.id === '03' ? player.dy = -8 : 0
-            }
-            // Hitting head
-            else if (prevY >= obj.y + obj.height) {
-                player.y = obj.y + obj.height;
-                player.dy = 0;
-            }
-            // Hitting from left
-            else if (player.x + player.width > obj.x && player.x < obj.x) {
-                player.x = obj.x - player.width;
+  for (const obj of objects) {
+    if (
+      player.x < obj.x + obj.width &&
+      player.x + player.width > obj.x &&
+      player.y < obj.y + obj.height &&
+      player.y + player.height > obj.y
+    ) {
+      if (obj.type === "flag") {
+        setNextLevel();
+        return;
+      }
 
-            }
-            // Hitting from right
-            else if (player.x < obj.x + obj.width && player.x > obj.x) {
-                player.x = obj.x + obj.width;
-            }
+      if (obj.type === "hostile") {
+        resetPlayer();
+        return;
+      }
 
-            if (obj.type === "flag")
-            {
-              setNextLevel() 
-            }
+      //  Bottom
+      if (prevY + player.height <= obj.y) {
+        player.y = obj.y - player.height;
+        player.dy = 0;
+        player.onFloor = true;
+
+        if (obj.id === '03') {
+          player.dy = -8;
         }
-    });
+      }
+      // Top
+      else if (prevY >= obj.y + obj.height) {
+        player.y = obj.y + obj.height;
+        player.dy = 0;
+      }
+      // Left
+      else if (player.x < obj.x) {
+        player.x = obj.x - player.width;
+      }
+      // Right
+      else {
+        player.x = obj.x + obj.width;
+      }
+      if (player.jumpBuffered && player.onFloor) {
+      player.dy = -player.jumpPower;
+      player.onFloor = false;
+      }
+
+      player.jumpBuffered = false;
+
+    }
+  }
 }
 
 export function setSpawn(x,y)
@@ -131,15 +154,6 @@ export function setSpawn(x,y)
   player.originalY = y;
   player.x = player.originalX;
   player.y = player.originalY;
-}
-
-function resetPlayer() {
-  player.x = player.originalX;
-  player.y = player.originalY;
-  player.leftX = 0;
-  player.rightX = 0;
-  player.dy = 0;
-  currentLevel.load()
 }
 
 export function updatePlayer(ctx, canvas) {

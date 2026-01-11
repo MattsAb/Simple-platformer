@@ -4,7 +4,7 @@ export class Platform {
     this.y = y
     this.width = 100
     this.height = 20
-    this.color = 'black'
+    this.color = '#705532'
     this.id = '01'
   }
 
@@ -31,6 +31,7 @@ export class Spring extends Platform {
     this.width = 50; 
     this.height = 30; 
     this.id = '03';  
+    this.color = "#acbb2a"
   }
 }
 
